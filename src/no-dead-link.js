@@ -7,6 +7,7 @@ const DEFAULT_OPTIONS = {
   checkRelative: true, // {boolean} `false` disables the checks for relative URIs
   baseURI: null, // {String|null} a base URI to resolve relative URIs.
   ignore: [], // {Array<String>} URIs to be skipped from availability checks.
+  ignoreStatus: [], // {Array<Integer>} Statuses to be skipped from availability checks.
 };
 
 // Adopted from http://stackoverflow.com/a/3809435/951517
@@ -48,7 +49,7 @@ function isRedirect(code) {
  * @param {string} method
  * @return {{ ok: boolean, redirect?: string, message: string }}
  */
-async function isAliveURI(uri, method = 'HEAD') {
+async function isAliveURI(uri, ignoreStatus, method = 'HEAD') {
   const opts = {
     method,
     // Disable gzip compression in Node.js
@@ -62,6 +63,12 @@ async function isAliveURI(uri, method = 'HEAD') {
 
   try {
     const res = await fetch(uri, opts);
+
+    if (ignoreStatus.includes(res.status)) {
+      return {
+        ok: true,
+      };
+    }
 
     if (isRedirect(res.status)) {
       const finalRes = await fetch(
@@ -86,7 +93,7 @@ async function isAliveURI(uri, method = 'HEAD') {
     // as some servers don't accept `HEAD` requests but are OK with `GET` requests.
     // https://github.com/textlint-rule/textlint-rule-no-dead-link/pull/86
     if (method === 'HEAD') {
-      return isAliveURI(uri, 'GET');
+      return isAliveURI(uri, ignoreStatus, 'GET');
     }
 
     return {
@@ -151,7 +158,7 @@ function reporter(context, options = {}) {
 
     const result = isLocal(uri)
       ? await isAliveLocalFile(uri)
-      : await isAliveURI(uri);
+      : await isAliveURI(uri, opts.ignoreStatus);
     const { ok, redirected, redirectTo, message } = result;
 
     if (!ok) {

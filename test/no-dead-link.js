@@ -43,6 +43,13 @@ tester.run('no-dead-link', rule, {
       },
     },
     {
+      text:
+        "should ignore  URIs when `ignoreStatus` option: https://httpstat.us/302 shoudn't be checked.",
+      options: {
+        ignoreStatus: [302],
+      },
+    },
+    {
       text: fs.readFileSync(path.join(__dirname, 'fixtures/a.md'), 'utf-8'),
       options: {
         baseURI: path.join(__dirname, 'fixtures/'),
